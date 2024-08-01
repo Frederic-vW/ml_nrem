@@ -3,9 +3,6 @@ import numpy as np
 import os
 import pickle
 
-#import pyedflib
-from pyedflib import highlevel
-read_edf = highlevel.read_edf
 from scipy.signal import welch
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (classification_report,
@@ -87,11 +84,11 @@ def make_features(delta=True, theta=True, alpha=True, beta=True):
         print(f"Analyzing sleep stage: {stage:s}", end="\r")
         for i_file, f in enumerate(files[stage]):
             #print(f"File {i_file+1:d}/{len(files[stage]):d}: {f:s}", end="\r")
-            #data, fs, chs = read_edf(f"{data_dir:s}/{f:s}")
-            data, data_headers, header = read_edf(f"{data_dir:s}/{f:s}")
-            fs = data_headers[0]['sample_rate']
-            chs = [h['label'] for h in data_headers]
-            data = data.T
+            data, fs, chs = read_edf(f"{data_dir:s}/{f:s}")
+            #data, data_headers, header = read_edf(f"{data_dir:s}/{f:s}")
+            #fs = data_headers[0]['sample_rate']
+            #chs = [h['label'] for h in data_headers]
+            #data = data.T
             n_t, n_ch = data.shape
             #print(f"n_t = {n_t:d}, n_ch = {n_ch:d}")
             n_ep = n_t // n_samples_per_epoch
@@ -123,7 +120,6 @@ def make_features(delta=True, theta=True, alpha=True, beta=True):
     return X, y, feature_names
 
 
-'''
 def read_edf(filename):
     """Basic EDF file format reader
 
@@ -186,11 +182,23 @@ def read_edf(filename):
         header['samples_per_record'].append(float(bytestr(b, i)))
     nr = header['records']
     n_per_rec = int(header['samples_per_record'][0])
-    n_total = int(nr*n_per_rec*nch)
+    #n_total = int(nr*n_per_rec*nch)
+    
+    chs = [c.decode() for c in header['channelname'].split()]
+    if 'Annotations' in chs:
+        #print("Annotations channel found")
+        chs.remove('Annotations')
+        nch -= 1
+        n_total = int(nr*n_per_rec*nch)
+    #print("chs = ", chs)
+    #print("nr = ", nr)
+    #print("n_per_rec = ", n_per_rec)
+    #print("n_total = ", n_total)
     fp.seek(header['length'],os.SEEK_SET)  # header end = data start
     data = np.fromfile(fp, sep='', dtype=np.int16, count=n_total)  # count=-1
     fp.close()
-
+    #print(header)
+    #print(data.shape, data.dtype)
     # re-order
     data = np.reshape(data,(n_per_rec,nch,nr),order='F')
     data = np.transpose(data,(0,2,1))
@@ -208,7 +216,7 @@ def read_edf(filename):
 
     #tt = load1010()
     #locs = np.zeros((nch, 2))
-    chs = [c.decode() for c in header['channelname'].split()]
+    #chs = [c.decode() for c in header['channelname'].split()]
     #for i, ch in enumerate(chs):
     #    #print(ch)
     #    #locs[i] = np.array(elocs[ch])
@@ -218,7 +226,6 @@ def read_edf(filename):
     return data, \
     	   header['samples_per_record'][0]/header['duration'], \
     	   chs
-'''
 
 
 def show_random_data(channel = 'O1'):
@@ -229,21 +236,21 @@ def show_random_data(channel = 'O1'):
 
     # wake data
     f_W = f"{data_dir:s}/{files['W'][rnd_idx]:s}"
-    #data_W, fs_W, ch_W = read_edf(f_W)
-    data_W, data_W_headers, header_W = read_edf(f_W)
-    fs_W = data_W_headers[0]['sample_rate']
-    ch_W = [h['label'] for h in data_W_headers]
+    data_W, fs_W, ch_W = read_edf(f_W)
+    #data_W, data_W_headers, header_W = read_edf(f_W)
+    #fs_W = data_W_headers[0]['sample_rate']
+    #ch_W = [h['label'] for h in data_W_headers]
     id_ch_W = ch_W.index(channel)
-    data_W = data_W[id_ch_W,:]
+    data_W = data_W[:,id_ch_W]
     
     # N1 data
     f_N1 = f"{data_dir:s}/{files['N1'][rnd_idx]:s}"
-    #data_N1, fs_N1, ch_N1 = read_edf(f_N1)
-    data_N1, data_N1_headers, header_N1 = read_edf(f_N1)
-    fs_N1 = data_N1_headers[0]['sample_rate']
-    ch_N1 = [h['label'] for h in data_N1_headers]
+    data_N1, fs_N1, ch_N1 = read_edf(f_N1)
+    #data_N1, data_N1_headers, header_N1 = read_edf(f_N1)
+    #fs_N1 = data_N1_headers[0]['sample_rate']
+    #ch_N1 = [h['label'] for h in data_N1_headers]
     id_ch_N1 = ch_N1.index(channel)
-    data_N1 = data_N1[id_ch_N1,:]
+    data_N1 = data_N1[:,id_ch_N1]
 
     # power spectral densities
     #fs = 250 # Hz
