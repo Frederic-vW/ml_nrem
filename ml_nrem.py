@@ -288,7 +288,7 @@ def show_random_data(channel = 'O1'):
     i_hi = np.argmin(np.abs(freqs_W-f_hi))
 
     # plot
-    t_show = 10 # sec
+    t_show = 8 # sec
 
     # select random epoch
     # W
@@ -318,7 +318,7 @@ def show_random_data(channel = 'O1'):
     # time courses
     # TODO: pick random segment
     fsize = 16
-    fig, ax = plt.subplots(3, 1, figsize=(18,12)) #, sharex=True, sharey=True)
+    fig, ax = plt.subplots(3, 1, figsize=(12,9)) #, sharex=True, sharey=True)
     ax[0].plot(time_W, 1e6*data_W, '-k', lw=2)
     ax[0].set_title(f"Subject: {rnd_idx:d}", fontsize=fsize+2)
     ax[1].plot(time_N1, 1e6*data_N1, '-b', lw=2)
@@ -326,7 +326,8 @@ def show_random_data(channel = 'O1'):
     ymn_W, ymx_W = ax[0].get_ylim()
     ymn_N1, ymx_N1 = ax[1].get_ylim()
     ymn = min(ymn_W, ymn_N1)
-    ymx = min(ymx_W, ymx_N1)
+    ymx = max(ymx_W, ymx_N1)
+    ax[0].set_ylim(ymn, ymx)
     ax[1].set_ylim(ymn, ymx)
     ax[1].set_xlabel("time (sec)", fontsize=fsize)
     ax[0].set_ylabel("voltage " + r"$(\mu V$)", fontsize=fsize)
