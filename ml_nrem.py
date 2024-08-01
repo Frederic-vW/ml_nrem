@@ -3,6 +3,7 @@ import numpy as np
 import os
 import pickle
 
+from mne.io import read_raw_edf
 from scipy.signal import welch
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (classification_report,
@@ -84,11 +85,20 @@ def make_features(delta=True, theta=True, alpha=True, beta=True):
         print(f"Analyzing sleep stage: {stage:s}", end="\r")
         for i_file, f in enumerate(files[stage]):
             #print(f"File {i_file+1:d}/{len(files[stage]):d}: {f:s}", end="\r")
-            data, fs, chs = read_edf(f"{data_dir:s}/{f:s}")
+            # mini EDF reader
+            #data, fs, chs = read_edf(f"{data_dir:s}/{f:s}")
+            # pyedflib
             #data, data_headers, header = read_edf(f"{data_dir:s}/{f:s}")
             #fs = data_headers[0]['sample_rate']
             #chs = [h['label'] for h in data_headers]
             #data = data.T
+            # MNE
+            raw = read_raw_edf(f"{data_dir:s}/{f:s}", 
+                               preload=True, verbose=False)
+            data = raw.get_data().T
+            fs = raw.info['sfreq']
+            chs = raw.info.ch_names
+            # analyze epochs
             n_t, n_ch = data.shape
             #print(f"n_t = {n_t:d}, n_ch = {n_ch:d}")
             n_ep = n_t // n_samples_per_epoch
@@ -236,19 +246,35 @@ def show_random_data(channel = 'O1'):
 
     # wake data
     f_W = f"{data_dir:s}/{files['W'][rnd_idx]:s}"
-    data_W, fs_W, ch_W = read_edf(f_W)
+    # mini EDF reader
+    #data_W, fs_W, ch_W = read_edf(f_W)
+    # pyedflib
     #data_W, data_W_headers, header_W = read_edf(f_W)
     #fs_W = data_W_headers[0]['sample_rate']
     #ch_W = [h['label'] for h in data_W_headers]
+    # MNE
+    raw = read_raw_edf(f_W, preload=True, verbose=False)
+    data_W = raw.get_data().T
+    fs_W = raw.info['sfreq']
+    ch_W = raw.info.ch_names
+            
     id_ch_W = ch_W.index(channel)
     data_W = data_W[:,id_ch_W]
     
     # N1 data
     f_N1 = f"{data_dir:s}/{files['N1'][rnd_idx]:s}"
+    # mini EDF reader
     data_N1, fs_N1, ch_N1 = read_edf(f_N1)
+    # pyedflib
     #data_N1, data_N1_headers, header_N1 = read_edf(f_N1)
     #fs_N1 = data_N1_headers[0]['sample_rate']
     #ch_N1 = [h['label'] for h in data_N1_headers]
+    # MNE
+    raw = read_raw_edf(f_N1, preload=True, verbose=False)
+    data_N1 = raw.get_data().T
+    fs_N1 = raw.info['sfreq']
+    ch_N1 = raw.info.ch_names
+    
     id_ch_N1 = ch_N1.index(channel)
     data_N1 = data_N1[:,id_ch_N1]
 
