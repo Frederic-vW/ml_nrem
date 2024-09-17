@@ -337,6 +337,12 @@ def show_random_data(channel = 'O1'):
     ax[2].semilogy(freqs_N1[i_lo:i_hi], psd_N1[i_lo:i_hi], '-b', lw=2)
     ax[2].set_xlabel("freq. (Hz)", fontsize=fsize)
     ax[2].set_ylabel("power " + r"$\mu V^2/Hz$", fontsize=fsize)
+    ax[2].set_title("Power spectral density", fontsize=fsize)
+    ymn, ymx = ax[2].get_ylim()
+    ax[2].text(x=1, y=1.2*ymn, s="delta", fontsize=fsize) # delta
+    ax[2].text(x=5, y=1.2*ymn, s="theta", fontsize=fsize) # theta
+    ax[2].text(x=8.5, y=1.2*ymn, s="alpha", fontsize=fsize) # alpha
+    ax[2].text(x=13, y=1.2*ymn, s="beta", fontsize=fsize) # beta
     for freq in [4, 8, 12]:
         ax[2].axvline(freq, lw=2)
     plt.tight_layout()
