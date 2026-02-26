@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import mne
 import numpy as np
 import os
 import pickle
@@ -130,114 +131,6 @@ def make_features(delta=True, theta=True, alpha=True, beta=True):
     return X, y, feature_names
 
 
-def read_edf(filename):
-    """Basic EDF file format reader
-
-    EDF specifications: http://www.edfplus.info/specs/edf.html
-
-    Args:
-        filename: full path to the '.edf' file
-    Returns:
-        data: EEG data as numpy.array (samples x channels)
-        fs: sampling frequency in [Hz]
-        chs: list of channel name strings
-        locs: 2D cartesian electrode coordinates as (n_ch,2) numpy.array
-    """
-
-    def readn(n):
-        """read n bytes."""
-        return np.fromfile(fp, sep='', dtype=np.int8, count=n)
-
-    def bytestr(bytes, i):
-        """convert block of bytes to string."""
-        return np.array([bytes[k] for k in range(i*8, (i+1)*8)]).tostring()
-
-    fp = open(filename, 'r')
-    x = np.fromfile(fp, sep='', dtype=np.uint8, count=256).tostring()
-    header = {}
-    header['version'] = x[0:8]
-    header['patientID'] = x[8:88]
-    header['recordingID'] = x[88:168]
-    header['startdate'] = x[168:176]
-    header['starttime'] = x[176:184]
-    header['length'] = int(x[184:192]) # header length (bytes)
-    header['reserved'] = x[192:236]
-    header['records'] = int(x[236:244]) # number of records
-    header['duration'] = float(x[244:252]) # duration of each record [sec]
-    header['channels'] = int(x[252:256]) # ns - number of signals
-    nch = header['channels']  # number of EEG channels
-    header['channelname'] = (readn(16*nch)).tostring()
-    header['transducer'] = (readn(80*nch)).tostring().split()
-    header['physdime'] = (readn(8*nch)).tostring().split()
-    header['physmin'] = []
-    b = readn(8*nch)
-    for i in range(nch):
-        header['physmin'].append(float(bytestr(b, i)))
-    header['physmax'] = []
-    b = readn(8*nch)
-    for i in range(nch):
-        header['physmax'].append(float(bytestr(b, i)))
-    header['digimin'] = []
-    b = readn(8*nch)
-    for i in range(nch):
-        header['digimin'].append(int(bytestr(b, i)))
-    header['digimax'] = []
-    b = readn(8*nch)
-    for i in range(nch):
-        header['digimax'].append(int(bytestr(b, i)))
-    header['prefilt'] = (readn(80*nch)).tostring().split()
-    header['samples_per_record'] = []
-    b = readn(8*nch)
-    for i in range(nch):
-        header['samples_per_record'].append(float(bytestr(b, i)))
-    nr = header['records']
-    n_per_rec = int(header['samples_per_record'][0])
-    #n_total = int(nr*n_per_rec*nch)
-    
-    chs = [c.decode() for c in header['channelname'].split()]
-    if 'Annotations' in chs:
-        #print("Annotations channel found")
-        chs.remove('Annotations')
-        nch -= 1
-        n_total = int(nr*n_per_rec*nch)
-    #print("chs = ", chs)
-    #print("nr = ", nr)
-    #print("n_per_rec = ", n_per_rec)
-    #print("n_total = ", n_total)
-    fp.seek(header['length'],os.SEEK_SET)  # header end = data start
-    data = np.fromfile(fp, sep='', dtype=np.int16, count=n_total)  # count=-1
-    fp.close()
-    #print(header)
-    #print(data.shape, data.dtype)
-    # re-order
-    data = np.reshape(data,(n_per_rec,nch,nr),order='F')
-    data = np.transpose(data,(0,2,1))
-    data = np.reshape(data,(n_per_rec*nr,nch),order='F')
-    data = data.astype(float)
-
-    # convert to physical dimensions
-    for k in range(data.shape[1]):
-        d_min = float(header['digimin'][k])
-        d_max = float(header['digimax'][k])
-        p_min = float(header['physmin'][k])
-        p_max = float(header['physmax'][k])
-        if ((d_max-d_min) > 0):
-            data[:,k] = p_min+(data[:,k]-d_min)/(d_max-d_min)*(p_max-p_min)
-
-    #tt = load1010()
-    #locs = np.zeros((nch, 2))
-    #chs = [c.decode() for c in header['channelname'].split()]
-    #for i, ch in enumerate(chs):
-    #    #print(ch)
-    #    #locs[i] = np.array(elocs[ch])
-    #    locs[i] = [tt[ch][0], tt[ch][1]]
-    #    #locs /= np.sqrt(np.sum(locs**2,axis=1))[:,np.newaxis]
-    #print(header)
-    return data, \
-    	   header['samples_per_record'][0]/header['duration'], \
-    	   chs
-
-
 def show_random_data(channel = 'O1'):
     files = load_files()
     n_subj = 15
@@ -263,12 +156,16 @@ def show_random_data(channel = 'O1'):
     
     # N1 data
     f_N1 = f"{data_dir:s}/{files['N1'][rnd_idx]:s}"
+    
     # mini EDF reader
-    data_N1, fs_N1, ch_N1 = read_edf(f_N1)
+    # does not work with Numpy 2.x
+    #data_N1, fs_N1, ch_N1 = read_edf(f_N1)
+    
     # pyedflib
     #data_N1, data_N1_headers, header_N1 = read_edf(f_N1)
     #fs_N1 = data_N1_headers[0]['sample_rate']
     #ch_N1 = [h['label'] for h in data_N1_headers]
+
     # MNE
     raw = read_raw_edf(f_N1, preload=True, verbose=False)
     data_N1 = raw.get_data().T
