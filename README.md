@@ -11,6 +11,7 @@ Run in your browser (no installation, JupyterLite):
   - `spectral_features.npz` – band powers per 10 s epoch, `X_bands (n_epochs, 4 bands, 30 ch)`, labels `y`, `subject`, `epoch`
   - `spectra.npz` – Welch spectra per 10 s epoch, `psd (n_epochs, n_freqs, 30)` in V²/Hz for 0–45 Hz, `psd_total` (sum over all frequencies, used for normalization)
 - `tools/edf_to_npz.py` – regenerates `content/data/` from the EDF files (requires MNE; not used at runtime)
+- ...
 
 ## Build locally
 ```
